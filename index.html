@@ -71,14 +71,14 @@ body{font-family:var(--font);background:var(--cream);color:var(--g900);-webkit-f
   position:fixed;top:0;left:0;right:0;height:var(--hdr);z-index:600;
   background:rgba(13,27,42,.98);backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);
   border-bottom:1px solid rgba(255,255,255,.07);
-  display:flex;align-items:center;justify-content:space-between;padding:0 16px;
-  box-shadow:0 2px 20px rgba(0,0,0,.4);
+  display:flex;align-items:center;justify-content:space-between;padding:0 12px;
+  box-shadow:0 2px 20px rgba(0,0,0,.4);overflow:hidden;
 }
-.hdr-brand{display:flex;align-items:center;gap:10px}
-.hdr-logo{width:34px;height:34px;background:linear-gradient(135deg,var(--gold),var(--gold2));border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:17px;box-shadow:0 2px 8px rgba(232,105,10,.4)}
-.hdr-title{font-family:var(--font-d);font-size:18px;font-weight:900;color:white;letter-spacing:-.3px}
-.hdr-actions{display:flex;align-items:center;gap:6px}
-.hdr-btn{width:36px;height:36px;border:none;border-radius:10px;background:rgba(255,255,255,.08);color:white;font-size:15px;display:flex;align-items:center;justify-content:center;cursor:pointer;transition:background .15s;flex-shrink:0}
+.hdr-brand{display:flex;align-items:center;gap:8px;min-width:0;flex:1;overflow:hidden}
+.hdr-logo{width:32px;height:32px;background:linear-gradient(135deg,var(--gold),var(--gold2));border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:16px;box-shadow:0 2px 8px rgba(232,105,10,.4);flex-shrink:0}
+.hdr-title{font-family:var(--font-d);font-size:17px;font-weight:900;color:white;letter-spacing:-.3px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.hdr-actions{display:flex;align-items:center;gap:4px;flex-shrink:0}
+.hdr-btn{width:34px;height:34px;border:none;border-radius:10px;background:rgba(255,255,255,.08);color:white;font-size:15px;display:flex;align-items:center;justify-content:center;cursor:pointer;transition:background .15s;flex-shrink:0}
 .hdr-btn:hover{background:rgba(255,255,255,.16)}
 .hdr-btn:active{background:rgba(255,255,255,.22);transform:scale(.93)}
 
@@ -162,9 +162,9 @@ body{font-family:var(--font);background:var(--cream);color:var(--g900);-webkit-f
 /* ══════════════════════════════════════════════════════════════
    BOTTOM NAV BUTTONS
 ══════════════════════════════════════════════════════════════ */
-.bnav-btn{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:9px 4px 7px;cursor:pointer;background:none;border:none;gap:3px;min-height:54px;position:relative;transition:all .2s;-webkit-tap-highlight-color:transparent}
-.bnav-btn .bicon{font-size:20px;transition:transform .2s;line-height:1}
-.bnav-btn .blbl{font-size:9px;font-weight:700;letter-spacing:.3px;color:rgba(255,255,255,.32);font-family:var(--font);transition:color .2s;text-transform:uppercase}
+.bnav-btn{flex:1;min-width:0;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:9px 2px 7px;cursor:pointer;background:none;border:none;gap:3px;min-height:54px;position:relative;transition:all .2s;-webkit-tap-highlight-color:transparent;overflow:hidden}
+.bnav-btn .bicon{font-size:20px;transition:transform .2s;line-height:1;flex-shrink:0}
+.bnav-btn .blbl{font-size:9px;font-weight:700;letter-spacing:.2px;color:rgba(255,255,255,.32);font-family:var(--font);transition:color .2s;text-transform:uppercase;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100%;text-align:center}
 .bnav-btn.active .bicon{transform:scale(1.2)}
 .bnav-btn.active .blbl{color:var(--gold)}
 .bnav-btn:active .bicon{transform:scale(.85)}
@@ -581,6 +581,9 @@ select,input,textarea,button{font-family:var(--font)}
   .hdr-title{font-size:15px!important}
   .quick-tools-grid{grid-template-columns:1fr!important}
   .hero-search-grid{grid-template-columns:1fr!important}
+  .bnav-btn .bicon{font-size:17px!important}
+  .bnav-btn .blbl{font-size:7px!important;letter-spacing:0!important}
+  .hdr-btn{width:30px!important;height:30px!important;font-size:13px!important}
 }
 </style>
 </head>
@@ -590,7 +593,10 @@ select,input,textarea,button{font-family:var(--font)}
 <header id="appHeader">
   <div class="hdr-brand">
     <div class="hdr-logo">🏠</div>
-    <span class="hdr-title">MumbaiHomes</span>
+    <div style="display:flex;flex-direction:column;gap:1px;overflow:hidden">
+      <span class="hdr-title">MumbaiHomes</span>
+      <span style="font-size:9px;color:rgba(232,105,10,0.8);font-weight:700;letter-spacing:.5px">v22</span>
+    </div>
   </div>
   <div class="hdr-actions">
     <button class="hdr-btn" onclick="goto('listings')" title="Search">🔍</button>
@@ -606,7 +612,7 @@ select,input,textarea,button{font-family:var(--font)}
       <div class="sb-logo-icon">🏠</div>
       <div>
         <div class="sb-logo-name">MumbaiHomes</div>
-        <div class="sb-logo-sub">Find · List · Deal</div>
+        <div class="sb-logo-sub">Find · List · Deal &nbsp;<span style="background:rgba(232,105,10,0.3);color:#E8690A;padding:1px 6px;border-radius:6px;font-size:9px;font-weight:800">v22</span></div>
       </div>
     </div>
     <div class="sb-search" onclick="goto('listings')">
@@ -713,11 +719,11 @@ select,input,textarea,button{font-family:var(--font)}
 
 <!-- ════ BOTTOM NAVIGATION (mobile only, hidden ≥ 768px via CSS) ════ -->
 <nav id="bottomNav">
-  <button class="bnav-btn active" id="nb_home"    onclick="goto('home')">       <span class="bicon">🏠</span><span class="blbl">Home</span></button>
-  <button class="bnav-btn"        id="nb_search"  onclick="goto('listings')">   <span class="bicon">🔍</span><span class="blbl">Search</span></button>
-  <button class="bnav-btn"        id="nb_map"     onclick="goto('mapView')">    <span class="bicon">🗺️</span><span class="blbl">Map</span></button>
-  <button class="bnav-btn"        id="nb_market"  onclick="goto('marketplace')"><span class="bicon">🛒</span><span class="blbl">Market</span></button>
-  <button class="bnav-btn"        id="nb_profile" onclick="gotoProfile()">      <span class="bicon">👤</span><span class="blbl">Profile</span><span id="nb_badge" class="bnav-dot" style="display:none">0</span></button>
+  <button class="bnav-btn active" id="nb_home"    onclick="goto('home')">       <span class="bicon">🏠</span><span class="blbl" id="bnlbl_home">Home</span></button>
+  <button class="bnav-btn"        id="nb_search"  onclick="goto('listings')">   <span class="bicon">🔍</span><span class="blbl" id="bnlbl_search">Search</span></button>
+  <button class="bnav-btn"        id="nb_map"     onclick="goto('mapView')">    <span class="bicon">🗺️</span><span class="blbl" id="bnlbl_map">Map</span></button>
+  <button class="bnav-btn"        id="nb_market"  onclick="goto('marketplace')"><span class="bicon">🛒</span><span class="blbl" id="bnlbl_market">Market</span></button>
+  <button class="bnav-btn"        id="nb_profile" onclick="gotoProfile()">      <span class="bicon">👤</span><span class="blbl" id="bnlbl_profile">Profile</span><span id="nb_badge" class="bnav-dot" style="display:none">0</span></button>
 </nav>
 
 <!-- Firebase compat UMD — works on mobile Chrome, file://, and all browsers -->
@@ -1839,7 +1845,22 @@ window.goto=goto;window.toggleWish=toggleWish;window.doLogout=doLogout;window.lo
 // CRITICAL: expose S and render so inline onclick handlers can access them
 window.S=S;window.render=render;
 // P12 window helpers
-window.p12_setLang = function(l){S.lang=l;try{localStorage.setItem('mh_lang',l);}catch(e){}render();};
+window.p12_setLang = function(l){
+  S.lang=l;
+  try{localStorage.setItem('mh_lang',l);}catch(e){}
+  // Safely update bottom nav labels (static HTML elements)
+  const bnav={home:'home',search:'search',map:'map',market:'market',profile:'profile'};
+  Object.entries(bnav).forEach(([k,tk])=>{
+    const el=document.getElementById('bnlbl_'+k);
+    if(el && typeof P12_LANG!=='undefined'){
+      el.textContent=(P12_LANG[l]||P12_LANG.en)[tk]||(P12_LANG.en[tk])||k;
+    }
+  });
+  // Show toast confirming language change
+  const langName = l==='en'?'English':l==='hi'?'हिंदी':'मराठी';
+  if(typeof toast==='function') toast('🌐 Language: '+langName,'success');
+  render();
+};
 window.p12_closeQR = function(){document.getElementById('p12QRModal').classList.remove('show');};
 window.p12_openQR  = function(title,propId){
   document.getElementById('qrPropLabel').textContent = title||'Property';
@@ -2357,12 +2378,12 @@ function pgHome(){
     <div style="background:linear-gradient(135deg,#0D1B2A,#162d47,#0D1B2A);padding:80px 16px;position:relative;overflow:hidden;min-height:520px;display:flex;align-items:center">
       <div style="position:absolute;top:-100px;right:-80px;width:450px;height:450px;background:rgba(232,105,10,0.07);border-radius:50%"></div>
       <div style="max-width:900px;margin:0 auto;text-align:center;position:relative;z-index:1;width:100%">
-        <div style="color:#C9A84C;font-size:12px;font-weight:700;letter-spacing:4px;text-transform:uppercase;margin-bottom:16px">Mumbai's Most Trusted Property Platform</div>
+        <div style="color:#C9A84C;font-size:12px;font-weight:700;letter-spacing:4px;text-transform:uppercase;margin-bottom:16px">${t('heroBadge')}</div>
         <h1 style="font-family:'Playfair Display',serif;color:white;font-size:clamp(32px,6vw,62px);line-height:1.1;margin:0 0 20px">Property · Project · <span style="color:#E8690A">Invest</span></h1>
-        <p style="color:#9ca3af;font-size:17px;margin:0 0 36px">Search verified flats, plots & projects across Mumbai. List for free. Connect directly with owners, builders & agents.</p>
+        <p style="color:#9ca3af;font-size:17px;margin:0 0 36px">${t('heroSub')}</p>
         <div class="hero-btns" style="display:flex;gap:12px;justify-content:center;margin-bottom:40px;flex-wrap:wrap">
-          <button onclick="goto('listings')" class="btn-primary" style="padding:14px 28px;border-radius:14px;font-size:15px">🔍 Search Properties</button>
-          <button onclick="${S.user?`goto('addListing')`:`goto('auth')`}" style="background:rgba(255,255,255,0.1);color:white;border:2px solid rgba(255,255,255,0.3);padding:14px 28px;border-radius:14px;font-size:15px;font-weight:700;cursor:pointer">➕ List Property FREE</button>
+          <button onclick="goto('listings')" class="btn-primary" style="padding:14px 28px;border-radius:14px;font-size:15px">🔍 ${t('browseProps')}</button>
+          <button onclick="${S.user?`goto('addListing')`:`goto('auth')`}" style="background:rgba(255,255,255,0.1);color:white;border:2px solid rgba(255,255,255,0.3);padding:14px 28px;border-radius:14px;font-size:15px;font-weight:700;cursor:pointer">➕ ${t('listFree')}</button>
         </div>
         <div style="background:white;border-radius:20px;padding:24px;max-width:800px;margin:0 auto;box-shadow:0 20px 60px rgba(0,0,0,0.3)">
           <div class="hero-search-grid" style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:16px;align-items:end">
@@ -2437,8 +2458,8 @@ function pgHome(){
     </div>
     <div style="max-width:1200px;margin:0 auto;padding:60px 16px">
       <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:28px">
-        <div><h2 style="font-family:'Playfair Display',serif;font-size:28px;color:#1f2937;margin:0">Featured Properties</h2><p style="color:#6b7280;margin:6px 0 0">Handpicked verified properties — updated daily</p></div>
-        <button onclick="goto('listings')" style="color:#E8690A;background:none;border:2px solid #E8690A;padding:9px 18px;border-radius:20px;cursor:pointer;font-weight:600;font-size:13px">View All →</button>
+        <div><h2 style="font-family:'Playfair Display',serif;font-size:28px;color:#1f2937;margin:0">${t('featuredProps')}</h2><p style="color:#6b7280;margin:6px 0 0">Handpicked verified properties — updated daily</p></div>
+        <button onclick="goto('listings')" style="color:#E8690A;background:none;border:2px solid #E8690A;padding:9px 18px;border-radius:20px;cursor:pointer;font-weight:600;font-size:13px">${t('viewAll')}</button>
       </div>
       ${featured.length>0
         ?`<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(320px,1fr));gap:20px">${featured.map(p=>propCard(p)).join('')}</div>`
@@ -2447,15 +2468,15 @@ function pgHome(){
     <div style="background:white;padding:60px 16px">
       <div style="max-width:1200px;margin:0 auto">
         <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:28px">
-          <div><h2 style="font-family:'Playfair Display',serif;font-size:28px;color:#1f2937;margin:0">🛒 Latest Marketplace</h2><p style="color:#6b7280;margin:6px 0 0">Owner listings · Zero brokerage · Direct contact</p></div>
-          <button onclick="goto('marketplace')" style="color:#E8690A;background:none;border:2px solid #E8690A;padding:9px 18px;border-radius:20px;cursor:pointer;font-weight:600;font-size:13px">View All →</button>
+          <div><h2 style="font-family:'Playfair Display',serif;font-size:28px;color:#1f2937;margin:0">🛒 ${t('latestMarket')}</h2><p style="color:#6b7280;margin:6px 0 0">${t('nobroker')}</p></div>
+          <button onclick="goto('marketplace')" style="color:#E8690A;background:none;border:2px solid #E8690A;padding:9px 18px;border-radius:20px;cursor:pointer;font-weight:600;font-size:13px">${t('viewAll')}</button>
         </div>
         ${S.allListings.slice(0,3).length>0?`<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(320px,1fr));gap:20px">${S.allListings.slice(0,3).map(l=>listingCard(l)).join('')}</div>`
         :`<div style="text-align:center;padding:40px;color:#9ca3af;background:#f8f5f0;border-radius:20px"><p>No listings yet. <button onclick="${S.user?`goto('addListing')`:`goto('auth')`}" style="color:#E8690A;background:none;border:none;cursor:pointer;font-weight:700">Be the first!</button></p></div>`}
       </div>
     </div>
     <div style="max-width:1200px;margin:0 auto;padding:60px 16px">
-      <h2 style="font-family:'Playfair Display',serif;font-size:28px;color:#1f2937;text-align:center;margin:0 0 32px">Explore Properties by Neighbourhood</h2>
+      <h2 style="font-family:'Playfair Display',serif;font-size:28px;color:#1f2937;text-align:center;margin:0 0 32px">${t('browseArea')}</h2>
       <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:12px">
         ${[
           {a:'Bandra',price:'₹2.8–6Cr',tag:'Premium'},
