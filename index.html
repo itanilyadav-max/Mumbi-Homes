@@ -639,6 +639,9 @@ select,input,textarea,button{font-family:var(--font)}
     <button class="sn-item" id="snav_priceAlerts" onclick="goto('priceAlerts')"> <span class="sn-icon">🔔</span>Price Alerts</button>
     <button class="sn-item" id="snav_agentDash"   onclick="goto('agentDash')">   <span class="sn-icon">🧑‍💼</span>Agent Dashboard</button>
     <button class="sn-item" id="snav_admin"       onclick="goto('admin')">       <span class="sn-icon">⚙️</span>Admin</button>
+    <div class="sn-lbl">Data Tools</div>
+    <button class="sn-item" id="snav_bulkUpload"  onclick="goto('bulkUpload')">  <span class="sn-icon">📊</span>Bulk Upload</button>
+    <button class="sn-item" id="snav_backup"      onclick="goto('backup')"> <span class="sn-icon">🗄️</span>Backup & Restore</button>
   </nav>
   <div class="sb-footer">
     <div class="sb-user" onclick="gotoProfile()">
@@ -841,7 +844,7 @@ window.triggerInstall=function(){
 };
 
 // ── BOTTOM NAV HELPERS ────────────────────────────────────
-const NAV_MAP={propSearch:'nb_search',rentSmart:'nb_home',redevelop:'nb_home',govPolicy:'nb_home',projects:'nb_search',addProject:'nb_search',projectDetail:'nb_search',advocates:'nb_home',dealTracker:'nb_home',home:'nb_home',listings:'nb_search',detail:'nb_search',mapView:'nb_map',marketplace:'nb_market',addListing:'nb_market',listingDetail:'nb_market',auth:'nb_profile',agentDash:'nb_profile',myListings:'nb_profile',admin:'nb_profile',inquiries:'nb_profile',wishlist:'nb_profile',addProperty:'nb_profile',agents:'nb_profile',analytics:'nb_profile',leads:'nb_profile',bulkUpload:'nb_profile',notifications:'nb_profile',priceAlerts:'nb_profile',compare:'nb_search',savedSearches:'nb_search',finance:'nb_home',dealRoom:'nb_home',market:'nb_home',journey:'nb_profile',agentPro:'nb_profile',social:'nb_home',chat:'nb_home',forum:'nb_home'};
+const NAV_MAP={propSearch:'nb_search',rentSmart:'nb_home',redevelop:'nb_home',govPolicy:'nb_home',projects:'nb_search',addProject:'nb_search',projectDetail:'nb_search',advocates:'nb_home',dealTracker:'nb_home',home:'nb_home',listings:'nb_search',detail:'nb_search',mapView:'nb_map',marketplace:'nb_market',addListing:'nb_market',listingDetail:'nb_market',auth:'nb_profile',agentDash:'nb_profile',myListings:'nb_profile',admin:'nb_profile',inquiries:'nb_profile',wishlist:'nb_profile',addProperty:'nb_profile',agents:'nb_profile',analytics:'nb_profile',leads:'nb_profile',bulkUpload:'nb_profile',backup:'nb_profile',notifications:'nb_profile',priceAlerts:'nb_profile',compare:'nb_search',savedSearches:'nb_search',finance:'nb_home',dealRoom:'nb_home',market:'nb_home',journey:'nb_profile',agentPro:'nb_profile',social:'nb_home',chat:'nb_home',forum:'nb_home'};
 function updateBottomNav(pg){
   // Mobile bottom nav
   document.querySelectorAll('.bnav-btn').forEach(b=>b.classList.remove('active'));
@@ -974,6 +977,8 @@ let S={
   tenantData:null,        // current tenant's master record
   allTenants:[],          // superadmin only — list of all tenants
   tenantTab:'list',       // admin UI tab: 'list'|'add'
+  // ── BULK UPLOAD ──────────────────────────────────────────
+  bulk:{collection:'Properties',tab:'upload',results:null,history:[]},
 };
 
 // ── CLOUDINARY UPLOAD ─────────────────────────────────────
@@ -2311,7 +2316,6 @@ window.p13_docUpload=p13_docUpload;
 var _mmAnyOpen=false;
 window.mmToggle=function(key){
   var panels=['buy','sell','rent','project','services'];
-  // Check if any panel currently open
   var anyOpen=panels.some(function(k){var p=document.getElementById('mm-'+k);return p&&p.style.display==='block';});
   panels.forEach(function(k){
     var p=document.getElementById('mm-'+k);
@@ -2319,25 +2323,24 @@ window.mmToggle=function(key){
     if(!p)return;
     if(k===key){
       var alreadyOpen=p.style.display==='block';
-      // On click: toggle. On hover (anyOpen): always show the hovered one.
       if(alreadyOpen&&!anyOpen){
         p.style.display='none';
         if(b)b.setAttribute('data-open','');
       } else {
-        // Position under button
+        // Show panel first so we can measure its width
+        p.style.visibility='hidden';
+        p.style.display='block';
         if(b){
-          var nav=document.getElementById('mainNav');
-          var navRect=nav?nav.getBoundingClientRect():{left:0};
           var btnRect=b.getBoundingClientRect();
-          p.style.display='block';
-          var leftPos=Math.round(btnRect.left-navRect.left);
           var panelW=p.offsetWidth||300;
           var vpW=window.innerWidth;
-          if(leftPos+panelW>vpW-16){leftPos=Math.max(0,vpW-panelW-16);}
+          var leftPos=Math.round(btnRect.left);
+          if(leftPos+panelW>vpW-16){leftPos=Math.max(8,vpW-panelW-16);}
           p.style.left=leftPos+'px';
           p.style.right='auto';
+          p.style.top='64px';
         }
-        p.style.display='block';
+        p.style.visibility='visible';
         if(b)b.setAttribute('data-open','1');
       }
     } else {
@@ -2358,7 +2361,35 @@ window.mmCloseAll=function(){
 // Close on outside click
 document.addEventListener('click',function(e){
   if(!e.target.closest('#mainNav'))mmCloseAll();
+  if(!e.target.closest('#navSearch')&&!e.target.closest('#navSearchDrop')){
+    var d=document.getElementById('navSearchDrop');
+    if(d)d.style.display='none';
+  }
 });
+
+// Quick search suggestions
+window.navSearchSuggest=function(val){
+  var drop=document.getElementById('navSearchDrop');
+  var inp=document.getElementById('navSearch');
+  if(!drop||!inp)return;
+  if(!val||val.length<1){drop.style.display='none';return;}
+  var v=val.toLowerCase();
+  var areas=['Bandra','Andheri','Worli','Juhu','Dadar','Powai','Thane','Navi Mumbai','Kurla','Goregaon','Malad','Borivali','Kandivali','Chembur','Mulund','Bhandup','Vikhroli','Kanjurmarg','Ghatkopar','Dharavi','Sion','Matunga','Parel','Lower Parel','BKC','Santacruz','Vile Parle','Jogeshwari','Dahisar','Mira Road','Vasai','Virar','Panvel','Kharghar'];
+  var types=['Flat','House','Villa','Plot','Commercial','Bungalow','Penthouse','Warehouse'];
+  var matches=[];
+  areas.filter(a=>a.toLowerCase().includes(v)).slice(0,4).forEach(a=>matches.push({t:'📍 '+a,fn:`doSearch({area:'${a}'})`}));
+  types.filter(t=>t.toLowerCase().includes(v)).slice(0,2).forEach(t=>matches.push({t:'🏠 '+t,fn:`doSearch({type:'${t}'})`}));
+  if(val.match(/^[0-9]/)) matches.push({t:'₹ Search by budget: '+val,fn:`doSearch({area:'${val}'})`});
+  if(matches.length===0){drop.style.display='none';return;}
+  var btnRect=inp.getBoundingClientRect();
+  drop.style.left=btnRect.left+'px';
+  drop.style.minWidth=btnRect.width+'px';
+  drop.innerHTML=matches.map(m=>`<div onclick="mmCloseAll();${m.fn};document.getElementById('navSearch').value='';document.getElementById('navSearchDrop').style.display='none'"
+    style="padding:9px 14px;font-size:13px;color:#374151;cursor:pointer;border-bottom:1px solid #f9fafb;font-weight:500"
+    onmouseover="this.style.background='#fff7ed';this.style.color='#E8690A'"
+    onmouseout="this.style.background='';this.style.color='#374151'">${m.t}</div>`).join('');
+  drop.style.display='block';
+};
 
 function navbar(){
   const role=S.userData?.role;
@@ -2398,24 +2429,29 @@ function navbar(){
       {head:'Finance Tools',items:['EMI Calculator|goto(\'finance\')','Stamp Duty Calc|goto(\'finance\')','NRI Tax Calculator|goto(\'finance\')','Home Loan Guide|goto(\'finance\')','ROI Calculator|goto(\'finance\')']},
       {head:'More Services',items:['Market Intelligence|goto(\'market\')','Community Forum|goto(\'forum\')','Refer and Earn Rs.2000|goto(\'social\')','Agent Pro Tools|goto(\'agentPro\')','Browse Agents|goto(\'agents\')']},
       {head:'🔬 Smart Tools',items:['🔍 Know Your Property|goto(\'propSearch\')','🏠 Rent Smart — 10 Hazards|goto(\'rentSmart\')','🏗️ Redevelopment Hub|goto(\'redevelop\')','📜 Govt Policies & Laws|goto(\'govPolicy\')','🏛️ Maharashtra Bhulekh|window.open(\'https://mahabhulekh.maharashtra.gov.in/\')','📋 RERA Maharashtra|window.open(\'https://maharera.mahaonline.gov.in/\')']},
+      {head:'📊 Admin Data Tools',items:['Bulk Excel Upload|goto(\'bulkUpload\')','Download My Data|downloadMyData()','Restore from Backup|goto(\'backup\')','Tenant Management|goto(\'admin\')']}
+
     ]},
   };
 
   // All dropdown panels rendered once as hidden divs — compact, left-aligned under button
   const dropdownsHtml = Object.entries(MENUS).map(([key,menu])=>`
-    <div id="mm-${key}" style="display:none;position:absolute;top:64px;left:0;background:white;box-shadow:0 16px 48px rgba(0,0,0,0.22);border-radius:0 0 16px 16px;border-top:3px solid #E8690A;z-index:9999;animation:mmSlide 0.15s ease;min-width:max-content">
-      <div style="padding:20px 24px 20px 24px;display:flex;gap:0">
+    <div id="mm-${key}" style="display:none;position:fixed;top:64px;left:0;background:white;box-shadow:0 20px 60px rgba(0,0,0,0.28);border-radius:0 0 18px 18px;border-top:3px solid #E8690A;z-index:9999;">
+      <div style="padding:22px 28px 22px 28px;display:flex;gap:0">
         ${menu.cols.map((col,ci)=>`
-          <div style="padding:0 ${ci===0?'20px 0 0':'0 20px'};${ci>0?'border-left:1px solid #f3f4f6;padding-left:20px':''};min-width:170px">
-            <div style="font-size:9px;font-weight:800;color:#0D1B2A;text-transform:uppercase;letter-spacing:1.5px;margin-bottom:10px;padding-bottom:6px;border-bottom:2px solid #E8690A;white-space:nowrap">${col.head}</div>
+          <div style="${ci>0?'border-left:1px solid #f3f4f6;padding-left:22px;':''}padding-right:22px;min-width:175px">
+            <div style="font-size:9px;font-weight:800;color:#0D1B2A;text-transform:uppercase;letter-spacing:1.5px;margin-bottom:10px;padding-bottom:7px;border-bottom:2px solid #E8690A;white-space:nowrap">${col.head}</div>
             ${col.items.map(item=>{
               const [l,fn]=item.split('|');
-              return `<div onclick="mmCloseAll();${fn}" style="padding:7px 8px;border-radius:8px;cursor:pointer;font-size:13px;color:#374151;font-weight:500;display:flex;align-items:center;gap:8px;margin:1px 0;white-space:nowrap;transition:all 0.12s"
+              return `<div onclick="mmCloseAll();${fn}" style="padding:7px 8px;border-radius:8px;cursor:pointer;font-size:13px;color:#374151;font-weight:500;display:flex;align-items:center;gap:8px;margin:1px 0;white-space:nowrap;transition:background 0.1s,color 0.1s,padding-left 0.1s"
                 onmouseover="this.style.background='#fff7ed';this.style.color='#E8690A';this.style.paddingLeft='14px'"
                 onmouseout="this.style.background='';this.style.color='#374151';this.style.paddingLeft='8px'">
                 <span style="width:5px;height:5px;background:#E8690A;border-radius:50%;flex-shrink:0;opacity:0.6"></span>${l}</div>`;
             }).join('')}
           </div>`).join('')}
+      </div>
+      <div style="background:#f8f5f0;border-top:1px solid #f3f4f6;padding:8px 28px;border-radius:0 0 18px 18px;font-size:11px;color:#9ca3af">
+        Mumbai Homes — Find. Sell. Rent. Invest.
       </div>
     </div>`).join('');
 
@@ -2426,19 +2462,22 @@ function navbar(){
       ||['projects','addProject','projectDetail'].includes(S.page)&&key==='project'
       ||['advocates','dealTracker'].includes(S.page)&&key==='services';
     return `<button id="mmb-${key}" onclick="mmToggle('${key}')" onmouseenter="mmToggle('${key}')"
-      style="background:${active?'rgba(232,105,10,0.12)':'none'};border:none;color:${active?'#E8690A':'#d1d5db'};cursor:pointer;font-size:13px;font-weight:600;padding:8px 11px;border-radius:8px;display:inline-flex;align-items:center;gap:5px;white-space:nowrap;transition:color 0.15s,background 0.15s"
-      onmouseover="this.style.color='#E8690A';this.style.background='rgba(232,105,10,0.1)'"
-      onmouseout="this.style.color='${active?'#E8690A':'#d1d5db'}';this.style.background='${active?'rgba(232,105,10,0.12)':'none'}'">
+      style="background:${active?'rgba(232,105,10,0.12)':'none'};border:none;color:${active?'#E8690A':'#d1d5db'};cursor:pointer;font-size:13px;font-weight:600;padding:8px 11px 6px;border-radius:8px 8px 0 0;display:inline-flex;align-items:center;gap:5px;white-space:nowrap;transition:color 0.15s,background 0.15s;position:relative;border-bottom:2px solid ${active?'#E8690A':'transparent'}"
+      onmouseover="this.style.color='#E8690A';this.style.background='rgba(232,105,10,0.1)';this.style.borderBottomColor='#E8690A'"
+      onmouseout="this.style.color='${active?'#E8690A':'#d1d5db'}';this.style.background='${active?'rgba(232,105,10,0.12)':'none'}';this.style.borderBottomColor='${active?'#E8690A':'transparent'}'">
       ${m.label}<svg width="10" height="6" viewBox="0 0 10 6" fill="none" stroke="currentColor" stroke-width="2"><polyline points="1,1 5,5 9,1"/></svg>
     </button>`;
   };
 
-  return `<nav id="mainNav" onmouseleave="mmCloseAll()" style="background:#0D1B2A;position:sticky;top:0;z-index:500;box-shadow:0 4px 30px rgba(0,0,0,0.5);overflow:hidden">
+  return `<nav id="mainNav" onmouseleave="mmCloseAll()" style="background:#0D1B2A;position:sticky;top:0;z-index:700;box-shadow:0 4px 30px rgba(0,0,0,0.5)">
     <style>
       @keyframes mmSlide{from{opacity:0;transform:translateY(-8px)}to{opacity:1;transform:translateY(0)}}
       @media(max-width:767px){#mainNav{display:none!important}}
+      #mainNav #mm-buy,#mainNav #mm-sell,#mainNav #mm-rent,#mainNav #mm-project,#mainNav #mm-services{
+        position:fixed;top:64px;z-index:9999;
+      }
     </style>
-    <div style="max-width:1280px;margin:0 auto;padding:0 16px;display:flex;align-items:center;justify-content:space-between;height:64px;position:relative;overflow:hidden">
+    <div style="max-width:1280px;margin:0 auto;padding:0 16px;display:flex;align-items:center;justify-content:space-between;height:64px;position:relative">
       <button onclick="mmCloseAll();goto('home')" style="background:none;border:none;cursor:pointer;display:flex;align-items:center;gap:10px;flex-shrink:0">
         <div style="width:36px;height:36px;background:linear-gradient(135deg,#E8690A,#C9A84C);border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:18px">🏠</div>
         <span style="font-family:'Playfair Display',serif;color:#C9A84C;font-size:20px;font-weight:700">Mumbai<span style="color:white">Homes</span></span>
@@ -2449,10 +2488,21 @@ function navbar(){
         ${navBtn('rent')}
         ${navBtn('project')}
         ${navBtn('services')}
-        <button onclick="mmCloseAll();goto('market')" style="background:none;border:none;color:${S.page==='market'?'#E8690A':'#d1d5db'};cursor:pointer;font-size:13px;font-weight:600;padding:8px 11px;border-radius:8px;white-space:nowrap"
-          onmouseover="this.style.color='#E8690A'" onmouseout="this.style.color='${S.page==='market'?'#E8690A':'#d1d5db'}'">📊 Market</button>
-        <button onclick="mmCloseAll();goto('social')" style="background:none;border:none;color:${['social','chat','forum'].includes(S.page)?'#E8690A':'#d1d5db'};cursor:pointer;font-size:13px;font-weight:600;padding:8px 11px;border-radius:8px;white-space:nowrap"
-          onmouseover="this.style.color='#E8690A'" onmouseout="this.style.color='${['social','chat','forum'].includes(S.page)?'#E8690A':'#d1d5db'}'">🤝 Community</button>
+        <button onclick="mmCloseAll();goto('market')" style="background:none;border:none;color:${S.page==='market'?'#E8690A':'#d1d5db'};cursor:pointer;font-size:13px;font-weight:600;padding:8px 11px 6px;border-radius:8px 8px 0 0;white-space:nowrap;border-bottom:2px solid ${S.page==='market'?'#E8690A':'transparent'}"
+          onmouseover="this.style.color='#E8690A';this.style.borderBottomColor='#E8690A'" onmouseout="this.style.color='${S.page==='market'?'#E8690A':'#d1d5db'}';this.style.borderBottomColor='${S.page==='market'?'#E8690A':'transparent'}'">📊 Market</button>
+        <button onclick="mmCloseAll();goto('social')" style="background:none;border:none;color:${['social','chat','forum'].includes(S.page)?'#E8690A':'#d1d5db'};cursor:pointer;font-size:13px;font-weight:600;padding:8px 11px 6px;border-radius:8px 8px 0 0;white-space:nowrap;border-bottom:2px solid ${['social','chat','forum'].includes(S.page)?'#E8690A':'transparent'}"
+          onmouseover="this.style.color='#E8690A';this.style.borderBottomColor='#E8690A'" onmouseout="this.style.color='${['social','chat','forum'].includes(S.page)?'#E8690A':'#d1d5db'}';this.style.borderBottomColor='${['social','chat','forum'].includes(S.page)?'#E8690A':'transparent'}'">🤝 Community</button>
+        <div style="width:1px;height:20px;background:rgba(255,255,255,0.12);margin:0 4px"></div>
+        <div style="position:relative;display:flex;align-items:center">
+          <input id="navSearch" type="text" placeholder="Quick search area, type..." onkeydown="if(event.key==='Enter'){const v=this.value.trim();if(v){mmCloseAll();doSearch({area:v});this.value='';this.blur();}}"
+            style="background:rgba(255,255,255,0.09);border:1px solid rgba(255,255,255,0.14);color:white;border-radius:20px;padding:6px 32px 6px 12px;font-size:12px;width:180px;outline:none;transition:width 0.2s,background 0.2s"
+            onfocus="this.style.background='rgba(255,255,255,0.14)';this.style.width='220px'"
+            onblur="this.style.background='rgba(255,255,255,0.09)';this.style.width='180px'"
+            oninput="navSearchSuggest(this.value)">
+          <span style="position:absolute;right:10px;color:#9ca3af;font-size:13px;pointer-events:none">🔍</span>
+          <div id="navSearchDrop" style="display:none;position:fixed;top:62px;background:white;border-radius:0 0 12px 12px;box-shadow:0 12px 40px rgba(0,0,0,0.2);z-index:9999;min-width:220px;overflow:hidden"></div>
+        </div>
+        <button onclick="mmCloseAll();goto('addListing')" style="background:#E8690A;color:white;border:none;cursor:pointer;padding:7px 14px;border-radius:20px;font-size:12px;font-weight:700;white-space:nowrap;margin-left:4px">+ Post Free Ad</button>
         ${S.user?`
           <button onclick="mmCloseAll();goto('wishlist')" style="background:none;border:none;color:#d1d5db;cursor:pointer;padding:8px;position:relative">❤️${S.wishlist.length>0?`<span style="position:absolute;top:2px;right:2px;background:#ef4444;color:white;font-size:9px;border-radius:50%;width:14px;height:14px;display:flex;align-items:center;justify-content:center">${S.wishlist.length}</span>`:''}</button>
           <button onclick="mmCloseAll();goto('inquiries')" style="background:none;border:none;color:#d1d5db;cursor:pointer;padding:8px;position:relative">📩${unread}</button>
@@ -2481,6 +2531,7 @@ function page(){
     case 'addProperty':  return pgAddProperty();
     case 'admin':        return pgAdmin();
     case 'bulkUpload':   return pgBulkUpload();
+    case 'backup':       return pgBackupPage();
     case 'marketplace':  return pgMarketplace();
     case 'addListing':   return pgAddListing();
     case 'myListings':   return pgMyListings();
@@ -3638,6 +3689,25 @@ function pgAdmin(){
     <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-bottom:24px">
       ${[{icon:'🏠',v:S.properties.length,l:'Properties',c:'#E8690A'},{icon:'🛒',v:S.allListings.length,l:'Marketplace',c:'#C9A84C'},{icon:'📩',v:S.inquiries.length,l:'Inquiries',c:'#3b82f6'},{icon:'🤝',v:S.allListings.filter(l=>l.dealStatus==='closed').length,l:'Deals Closed',c:'#10b981'}].map(s=>`<div style="background:white;border-radius:14px;padding:18px;box-shadow:0 2px 12px rgba(0,0,0,0.05);display:flex;align-items:center;gap:12px"><div style="width:44px;height:44px;background:${s.c}18;border-radius:12px;display:flex;align-items:center;justify-content:center;font-size:20px">${s.icon}</div><div><div style="font-size:24px;font-weight:800;color:#1f2937">${s.v}</div><div style="font-size:11px;color:#9ca3af">${s.l}</div></div></div>`).join('')}
     </div>
+    <!-- Quick-action data tools row -->
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:20px">
+      <button onclick="goto('bulkUpload')" style="background:linear-gradient(135deg,#1e1b4b,#4338ca);border:none;border-radius:14px;padding:16px 20px;cursor:pointer;text-align:left;display:flex;align-items:center;gap:14px">
+        <div style="width:44px;height:44px;background:rgba(255,255,255,0.15);border-radius:12px;display:flex;align-items:center;justify-content:center;font-size:22px;flex-shrink:0">📊</div>
+        <div>
+          <div style="color:white;font-weight:700;font-size:14px">Bulk Excel Upload</div>
+          <div style="color:rgba(255,255,255,0.65);font-size:12px;margin-top:2px">Import properties, clients, leads from Excel</div>
+        </div>
+        <div style="color:rgba(255,255,255,0.4);font-size:20px;margin-left:auto">›</div>
+      </button>
+      <button onclick="goto('backup')" style="background:linear-gradient(135deg,#064e3b,#065f46);border:none;border-radius:14px;padding:16px 20px;cursor:pointer;text-align:left;display:flex;align-items:center;gap:14px">
+        <div style="width:44px;height:44px;background:rgba(255,255,255,0.15);border-radius:12px;display:flex;align-items:center;justify-content:center;font-size:22px;flex-shrink:0">🗄️</div>
+        <div>
+          <div style="color:white;font-weight:700;font-size:14px">Backup & Restore</div>
+          <div style="color:rgba(255,255,255,0.65);font-size:12px;margin-top:2px">Download or restore all your company data</div>
+        </div>
+        <div style="color:rgba(255,255,255,0.4);font-size:20px;margin-left:auto">›</div>
+      </button>
+    </div>
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:20px;margin-bottom:24px">
       <div style="background:white;border-radius:18px;overflow:hidden;box-shadow:0 2px 12px rgba(0,0,0,0.05)">
         <div style="padding:16px 20px;border-bottom:1px solid #f3f4f6"><h3 style="font-weight:700;color:#1f2937;margin:0">Agent Properties</h3></div>
@@ -3660,7 +3730,7 @@ function pgBackupPanel(){
   const tname = S.tenantData?.name||tid;
   const today = new Date().toISOString().slice(0,10);
   return`<div style="background:white;border-radius:18px;overflow:hidden;box-shadow:0 2px 12px rgba(0,0,0,0.05);margin-bottom:24px">
-    <div style="background:linear-gradient(135deg,#064e3b,#065f46);padding:16px 20px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px">
+    <div id="backupSection" style="background:linear-gradient(135deg,#064e3b,#065f46);padding:16px 20px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px">
       <div style="color:white;font-weight:700;font-size:16px">🗄️ Data Backup & Restore</div>
       <span style="background:rgba(255,255,255,0.15);color:white;font-size:11px;padding:4px 12px;border-radius:20px;font-weight:600">Tenant: ${tname}</span>
     </div>
@@ -6846,6 +6916,144 @@ function pgRedevelop(){
   </div>`;
 }
 
+
+// ══════════════════════════════════════════════════════════════
+//  DEDICATED BACKUP & RESTORE PAGE
+// ══════════════════════════════════════════════════════════════
+function pgBackupPage(){
+  if(!S.user){ goto('auth'); return ''; }
+  const isAdmin = ['admin','superadmin','agent'].includes(S.userData?.role||'');
+  if(!isAdmin){ toast('Admin or Agent access required','error'); goto('home'); return ''; }
+  const tid   = S.userData?.tenantId||'default';
+  const tname = S.tenantData?.name||tid;
+  const today = new Date().toISOString().slice(0,10);
+  const colCount = BACKUP_COLLECTIONS?.length||6;
+
+  return`<div style="background:#f8f5f0;min-height:100vh;padding:28px 16px">
+    <div style="max-width:800px;margin:0 auto">
+
+      <!-- Header -->
+      <div style="display:flex;align-items:center;gap:12px;margin-bottom:24px;flex-wrap:wrap">
+        <button onclick="goto('admin')" style="background:white;border:1.5px solid #e5e7eb;border-radius:10px;padding:8px 14px;font-size:13px;cursor:pointer;color:#374151;flex-shrink:0">← Back</button>
+        <div>
+          <h1 style="font-family:'Playfair Display',serif;font-size:26px;color:#1f2937;margin:0">🗄️ Backup & Restore</h1>
+          <p style="color:#6b7280;font-size:13px;margin:4px 0 0">Keep your company data safe. Download anytime, restore if needed.</p>
+        </div>
+      </div>
+
+      <!-- Company banner -->
+      <div style="background:linear-gradient(135deg,#0D1B2A,#1e3a5f);border-radius:16px;padding:16px 22px;margin-bottom:24px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px">
+        <div style="display:flex;align-items:center;gap:12px">
+          <div style="width:42px;height:42px;background:#E8690A;border-radius:11px;display:flex;align-items:center;justify-content:center;font-size:20px">🏢</div>
+          <div>
+            <div style="color:white;font-weight:700;font-size:15px">${tname}</div>
+            <div style="color:rgba(255,255,255,0.55);font-size:11px">Tenant: ${tid} · Backing up ${colCount} collections</div>
+          </div>
+        </div>
+        <div style="color:rgba(255,255,255,0.55);font-size:12px">Today: ${today}</div>
+      </div>
+
+      <!-- DOWNLOAD card -->
+      <div style="background:white;border-radius:18px;overflow:hidden;box-shadow:0 2px 16px rgba(0,0,0,0.07);margin-bottom:16px">
+        <div style="background:linear-gradient(135deg,#064e3b,#065f46);padding:18px 24px;display:flex;align-items:center;gap:14px">
+          <div style="width:48px;height:48px;background:rgba(255,255,255,0.15);border-radius:12px;display:flex;align-items:center;justify-content:center;font-size:24px;flex-shrink:0">⬇️</div>
+          <div>
+            <div style="color:white;font-weight:700;font-size:16px">Download My Data</div>
+            <div style="color:rgba(255,255,255,0.65);font-size:13px">Save a complete backup of all your company data</div>
+          </div>
+        </div>
+        <div style="padding:22px 24px">
+          <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:20px">
+            ${(BACKUP_COLLECTIONS||['Properties','clientListings','users','inquiries','reviews','wishlists']).map(c=>`
+              <div style="background:#f0fdf4;border:1px solid #bbf7d0;border-radius:10px;padding:12px;text-align:center">
+                <div style="font-size:18px;margin-bottom:4px">${{Properties:'🏠',clientListings:'🛒',users:'👤',inquiries:'📩',reviews:'⭐',wishlists:'❤️'}[c]||'📁'}</div>
+                <div style="font-size:12px;font-weight:700;color:#065f46">${c}</div>
+              </div>`).join('')}
+          </div>
+          <div style="background:#f0fdf4;border:1.5px solid #bbf7d0;border-radius:12px;padding:14px 16px;margin-bottom:18px">
+            <div style="font-size:13px;color:#065f46;font-weight:700;margin-bottom:6px">✅ What gets downloaded:</div>
+            <div style="font-size:12px;color:#14532d;line-height:1.8">
+              • All ${colCount} collections filtered to your company only<br>
+              • Timestamps converted to readable date format<br>
+              • File name: <code style="background:#dcfce7;padding:1px 6px;border-radius:4px">${tid}-backup-${today}.json</code><br>
+              • Safe to email to yourself or store in Google Drive
+            </div>
+          </div>
+          <button id="backupBtn" onclick="downloadMyData()"
+            style="width:100%;background:#065f46;color:white;border:none;padding:14px;border-radius:12px;font-size:15px;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px">
+            ⬇️ Download My Data Now
+          </button>
+        </div>
+      </div>
+
+      <!-- RESTORE card -->
+      <div style="background:white;border-radius:18px;overflow:hidden;box-shadow:0 2px 16px rgba(0,0,0,0.07);margin-bottom:16px">
+        <div style="background:linear-gradient(135deg,#1e3a8a,#1d4ed8);padding:18px 24px;display:flex;align-items:center;gap:14px">
+          <div style="width:48px;height:48px;background:rgba(255,255,255,0.15);border-radius:12px;display:flex;align-items:center;justify-content:center;font-size:24px;flex-shrink:0">📂</div>
+          <div>
+            <div style="color:white;font-weight:700;font-size:16px">Restore from Backup</div>
+            <div style="color:rgba(255,255,255,0.65);font-size:13px">Upload a backup JSON file to recover your data</div>
+          </div>
+        </div>
+        <div style="padding:22px 24px">
+          <div style="background:#eff6ff;border:1.5px solid #bfdbfe;border-radius:12px;padding:14px 16px;margin-bottom:18px">
+            <div style="font-size:13px;color:#1e3a8a;font-weight:700;margin-bottom:6px">ℹ️ How restore works:</div>
+            <div style="font-size:12px;color:#1d4ed8;line-height:1.8">
+              • Select a <code style="background:#dbeafe;padding:1px 5px;border-radius:4px">.json</code> file previously downloaded from this app<br>
+              • Records are added back using merge — existing data is not deleted<br>
+              • Only restores records that belong to your tenant<br>
+              • You will see a confirmation before any data is written
+            </div>
+          </div>
+          <div style="background:#fffbeb;border:1.5px solid #fde68a;border-radius:12px;padding:12px 16px;margin-bottom:18px;font-size:12px;color:#92400e">
+            ⚠️ <strong>Only use a backup file from your own company.</strong> Restoring someone else's backup will mix up your data.
+          </div>
+          <input type="file" accept=".json" id="restoreFileInput" style="display:none" onchange="importBackup(this.files[0])"/>
+          <button id="restoreBtn" onclick="document.getElementById('restoreFileInput').click()"
+            style="width:100%;background:#1d4ed8;color:white;border:none;padding:14px;border-radius:12px;font-size:15px;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px">
+            📂 Select Backup File to Restore
+          </button>
+        </div>
+      </div>
+
+      <!-- AUTO BACKUP reminder -->
+      <div style="background:white;border-radius:18px;padding:22px 24px;box-shadow:0 2px 16px rgba(0,0,0,0.07);margin-bottom:16px">
+        <div style="font-weight:700;font-size:15px;color:#1f2937;margin-bottom:4px">📅 Set Up Automatic Daily Backup</div>
+        <div style="font-size:13px;color:#6b7280;line-height:1.7;margin-bottom:16px">
+          The Download button above is a manual backup. For automatic daily backups that run without you doing anything, set up Google Cloud Storage export in Firebase Console.
+        </div>
+        <div style="background:#f8f5f0;border-radius:12px;padding:14px 16px;font-size:12px;color:#374151;line-height:1.9">
+          <div style="font-weight:700;margin-bottom:6px">Steps (takes 10 minutes, runs forever after that):</div>
+          1. Go to <a href="https://console.firebase.google.com" target="_blank" style="color:#E8690A;font-weight:700">Firebase Console</a> → Your Project → Firestore Database<br>
+          2. Click <strong>Import/Export</strong> tab → <strong>Schedule Export</strong><br>
+          3. Destination: <code style="background:#e5e7eb;padding:1px 6px;border-radius:4px">gs://mumbai-homes-cad79-backups/</code><br>
+          4. Frequency: <strong>Daily</strong> · Time: <strong>2:00 AM</strong><br>
+          5. Click Save — done! Backups run every night automatically.
+        </div>
+        <div style="margin-top:12px;font-size:12px;color:#9ca3af">Cost: ₹50–150/month · Covers all 2,000 tenants · 30-day retention</div>
+      </div>
+
+      <!-- Tips -->
+      <div style="background:white;border-radius:18px;padding:22px 24px;box-shadow:0 2px 16px rgba(0,0,0,0.07)">
+        <div style="font-weight:700;font-size:15px;color:#1f2937;margin-bottom:12px">💡 Backup Best Practices</div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+          ${[
+            {icon:'📅',t:'Download weekly',d:'Every Monday morning before you start work'},
+            {icon:'☁️',t:'Save to Google Drive',d:'So you can access it from any device'},
+            {icon:'📧',t:'Email to yourself',d:'Keep a copy in your inbox as extra safety'},
+            {icon:'🔄',t:'Test restore once',d:'Try restoring on a test account to confirm it works'},
+          ].map(b=>`<div style="background:#f9fafb;border-radius:10px;padding:12px">
+            <div style="font-size:20px;margin-bottom:6px">${b.icon}</div>
+            <div style="font-size:13px;font-weight:700;color:#1f2937;margin-bottom:2px">${b.t}</div>
+            <div style="font-size:12px;color:#6b7280">${b.d}</div>
+          </div>`).join('')}
+        </div>
+      </div>
+
+    </div>
+  </div>`;
+}
+
 // ── STEP 7: BACKUP & RESTORE ─────────────────────────────
 // Collections that belong to a tenant and need to be backed up
 const BACKUP_COLLECTIONS = ['Properties','clientListings','users','inquiries','reviews','wishlists'];
@@ -7020,12 +7228,7 @@ const BULK_SCHEMAS = {
 };
 
 // ── State for bulk upload ─────────────────────────────────────
-if(!S.bulk) S.bulk = {
-  collection: 'Properties',
-  tab: 'upload',        // 'upload' | 'template' | 'history'
-  results: null,        // last upload results
-  history: [],          // [{date, collection, total, ok, errors}]
-};
+// S.bulk is initialised in the S state object above
 
 // ── Admin card linking to bulk upload page ────────────────────
 function pgBulkUploadCard(){
@@ -7048,8 +7251,9 @@ function pgBulkUploadCard(){
 
 // ── Full bulk upload page ─────────────────────────────────────
 function pgBulkUpload(){
-  if(!S.user||!(S.userData?.role==='admin'||S.userData?.role==='superadmin')){ goto('auth'); return ''; }
-  if(!S.bulk) S.bulk={collection:'Properties',tab:'upload',results:null,history:[]};
+  if(!S.user){ goto('auth'); return ''; }
+  const _role=S.userData?.role||'';
+  if(!['admin','superadmin','agent'].includes(_role)){ toast('Admin or Agent access required','error'); goto('home'); return ''; }
   const col  = S.bulk.collection;
   const sch  = BULK_SCHEMAS[col];
   const tab  = S.bulk.tab||'upload';
